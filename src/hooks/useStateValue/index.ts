@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useMemo } from "react"
 import useUpdate from "../useUpdate"
 
 type Callback = () => void
@@ -21,16 +21,20 @@ export default function useStateValue<T = any>(
 }
 
 const proxyCache = new WeakMap()
-function isProxiedValue(value: object) {
+
+/** 值是否已经被代理过 */
+function hasValueBeenProxied(value: object) {
   return proxyCache.has(value)
 }
 
+/** 值是否可以被代理 */
 function canValueBeProxied(value: unknown): value is object {
   if (Array.isArray(value)) return true
   if (Object.prototype.toString.call(value) === "[object Object]") return true
   return false
 }
 
+/** 值是否可以操作 */
 function isWritable(descriptor: any) {
   return descriptor?.configurable && descriptor?.writable
 }
@@ -38,11 +42,8 @@ function isWritable(descriptor: any) {
  * 创建代理
  * @param value
  */
-function createProxy<T extends Record<string, unknown> | Array<unknown>>(
-  value: T,
-  callback: Callback
-) {
-  if (isProxiedValue(value)) return proxyCache.get(value)
+function createProxy(value: any, callback: Callback) {
+  if (hasValueBeenProxied(value)) return proxyCache.get(value)
 
   const proxy = new Proxy(value, {
     get(target, p, receiver) {
@@ -66,7 +67,7 @@ function createProxy<T extends Record<string, unknown> | Array<unknown>>(
       }
       return ret
     },
-  }) as T
+  }) as any
   proxyCache.set(value, proxy)
   return proxy
 }
